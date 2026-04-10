@@ -25,23 +25,8 @@ Core characteristics:
 
 ---
 
-## Architecture Diagram (Reference for Draw.io)
+## Architecture Diagram
 
-Suggested components and layout:
-
-- User (internet)
-- Route 53 (optional future enhancement)
-- Application Load Balancer (public subnets)
-- EC2 Auto Scaling Group (private app subnets)
-- RDS MySQL (private DB subnets)
-- VPC with 3 AZs
-- Internet Gateway
-- Optional NAT Gateway (disabled by default)
-- VPC Endpoints (SSM, EC2Messages, SSMMessages)
-
-Logical flow:
-
-User → ALB → EC2 → RDS
 
 ---
 
