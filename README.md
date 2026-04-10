@@ -87,6 +87,7 @@ Why:
 
 ## Project Structure
 
+```bash
 modules/
   vpc/
   subnets/
@@ -103,11 +104,12 @@ environments/
 
 global/
   backend-bootstrap/
-
+```
 ---
 
 ## Deployment Steps
 
+```bash
 1. Clone the repository:
 
    git clone <repo-url>
@@ -129,11 +131,13 @@ global/
 4. Access the application:
 
    Use the ALB DNS name output by Terraform.
+```
 
 ---
 
 ## Teardown Steps
 
+```bash
 To destroy infrastructure:
 
 cd environments/dev
@@ -141,6 +145,8 @@ terraform destroy
 
 Note:
 Ensure RDS is fully deleted before re-running deployments to avoid naming conflicts.
+
+```
 
 ---
 
