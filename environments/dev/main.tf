@@ -1,11 +1,11 @@
 module "vpc" {
   source = "../../modules/vpc"
 
-  vpc_cidr  = "10.0.0.0/16"
-  project   = "3tier-vpc"
+  vpc_cidr    = "10.0.0.0/16"
+  project     = "3tier-vpc"
   environment = "dev"
 
-  public_subnet_ids = module.subnets.public_subnets
+  public_subnet_ids  = module.subnets.public_subnets
   private_subnet_ids = module.subnets.app_subnets
 
   enable_nat_gateway = false

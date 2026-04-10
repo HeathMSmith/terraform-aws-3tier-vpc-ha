@@ -45,7 +45,7 @@ resource "aws_launch_template" "this" {
     name = aws_iam_instance_profile.this.name
   }
 
-    user_data = base64encode(<<-EOF
+  user_data = base64encode(<<-EOF
         #!/bin/bash
         yum update -y
         yum install -y httpd
@@ -53,7 +53,7 @@ resource "aws_launch_template" "this" {
         systemctl start httpd
         echo "Hello from EC2" > /var/www/html/index.html
         EOF
-    )
+  )
 
   tag_specifications {
     resource_type = "instance"
