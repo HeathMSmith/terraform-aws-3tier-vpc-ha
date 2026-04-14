@@ -73,6 +73,7 @@ module "rds" {
   rds_sg_id  = module.security_groups.rds_sg_id # temporary (we'll fix later)
 
   secret_arn = module.secrets.secret_arn
+  secret_dependency = module.secrets
 
   project     = "3tier-vpc"
   environment = "dev"

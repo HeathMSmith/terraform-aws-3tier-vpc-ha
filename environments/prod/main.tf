@@ -70,9 +70,10 @@ module "rds" {
   source = "../../modules/rds"
 
   subnet_ids = module.subnets.db_subnets
-  rds_sg_id  = module.security_groups.rds_sg_id # temporary (we'll fix later)
+  rds_sg_id  = module.security_groups.rds_sg_id
 
-  secret_arn = module.secrets.secret_arn
+  secret_arn        = module.secrets.secret_arn
+  secret_dependency = module.secrets
 
   project     = "3tier-vpc"
   environment = "prod"

@@ -33,3 +33,7 @@ variable "secret_arn" {
   description = "Secrets Manager ARN"
   type        = string
 }
+variable "secret_dependency" {
+  description = "Ensures secret is created before reading"
+  type        = any
+}
