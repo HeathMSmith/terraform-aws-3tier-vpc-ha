@@ -1,5 +1,7 @@
 data "aws_secretsmanager_secret_version" "db" {
   secret_id = var.secret_arn
+
+  depends_on = [var.secret_dependency]
 }
 
 locals {

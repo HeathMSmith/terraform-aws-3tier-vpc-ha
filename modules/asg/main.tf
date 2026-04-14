@@ -1,14 +1,3 @@
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-
-  owners = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-}
-
 resource "aws_iam_role" "ec2_role" {
   name = "${var.project}-${var.environment}-ec2-role"
 
@@ -36,7 +25,7 @@ resource "aws_iam_instance_profile" "this" {
 
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.project}-${var.environment}-lt"
-  image_id      = data.aws_ami.amazon_linux.id
+  image_id      = var.ami_id
   instance_type = "t2.micro"
 
   vpc_security_group_ids = [var.ec2_sg_id]
@@ -47,9 +36,6 @@ resource "aws_launch_template" "this" {
 
   user_data = base64encode(<<-EOF
         #!/bin/bash
-        yum update -y
-        yum install -y httpd
-        systemctl enable httpd
         systemctl start httpd
         echo "Hello from EC2" > /var/www/html/index.html
         EOF
