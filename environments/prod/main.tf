@@ -58,6 +58,8 @@ module "alb" {
 module "asg" {
   source = "../../modules/asg"
 
+  ami_id = "ami-07c574ed3f5c9aeba"
+
   subnet_ids       = module.subnets.app_subnets
   ec2_sg_id        = module.security_groups.ec2_sg_id
   target_group_arn = module.alb.target_group_arn
