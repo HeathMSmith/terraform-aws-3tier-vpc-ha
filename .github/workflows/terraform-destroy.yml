@@ -22,20 +22,16 @@ jobs:
       id-token: write
       contents: read
 
-    defaults:
-      run:
-        working-directory: environments/${{ github.event.inputs.environment }}
-
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Validate confirmation
         run: |
           if [ "${{ github.event.inputs.confirm }}" != "destroy" ]; then
             echo "Confirmation failed. You must type 'destroy'"
             exit 1
           fi
-
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -47,10 +43,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
+        working-directory: environments/${{ github.event.inputs.environment }}
         run: terraform init
 
       - name: Terraform Plan Destroy
+        working-directory: environments/${{ github.event.inputs.environment }}
         run: terraform plan -destroy
 
       - name: Terraform Destroy
+        working-directory: environments/${{ github.event.inputs.environment }}
         run: terraform destroy -auto-approve
