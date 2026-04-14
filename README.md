@@ -2,201 +2,217 @@
 
 ## Overview
 
-This repository demonstrates a production-style, highly available 3-tier architecture on AWS using Terraform. The design emphasizes modularity, security, cost-awareness, and alignment with real-world infrastructure patterns.
+This repository demonstrates a production-style, highly available 3-tier
+architecture on AWS using Terraform. The design emphasizes modularity,
+security, cost-awareness, and alignment with real-world infrastructure
+patterns.
 
-The goal of this project is not just to deploy infrastructure, but to demonstrate the reasoning behind architectural decisions and the tradeoffs involved.
+This project has been iteratively enhanced to incorporate
+production-grade practices such as immutable infrastructure, controlled
+CI/CD workflows, and secure secret management.
 
----
+------------------------------------------------------------------------
 
 ## Architecture
 
 High-level request flow:
 
-Internet → Application Load Balancer → EC2 Auto Scaling Group → Amazon RDS
+Internet → Application Load Balancer → EC2 Auto Scaling Group → Amazon
+RDS
 
 Core characteristics:
 
-- Region: us-east-1
-- 3 Availability Zones for high availability
-- 9 subnets:
-  - 3 Public (ALB)
-  - 3 Private Application
-  - 3 Private Database
+-   Region: us-east-1
+-   3 Availability Zones for high availability
+-   9 subnets:
+    -   3 Public (ALB)
+    -   3 Private Application
+    -   3 Private Database
 
----
+------------------------------------------------------------------------
 
 ## Architecture Diagram
 
 ![Architecture](./assets/three-tier-vpc-architecture.png)
----
 
-## Key Design Decisions (The “Why”)
+------------------------------------------------------------------------
+
+## Key Design Decisions (The "Why")
 
 ### 1. Three Availability Zones
-Chosen to demonstrate true high availability and fault tolerance beyond basic two-AZ designs.
+
+Chosen to demonstrate true high availability and fault tolerance beyond
+basic two-AZ designs.
 
 ### 2. NAT-less Architecture (Default)
-NAT Gateway is disabled by default to reduce cost. Instead, VPC Interface Endpoints are used to allow SSM-based management without internet access.
 
-Tradeoff:
-- Lower cost
-- More controlled egress
-- Requires alternative strategies for package installation
+NAT Gateway is disabled to reduce cost. VPC Interface Endpoints are used
+for SSM access.
 
-### 3. Private Application Tier
-EC2 instances are not publicly accessible and are managed exclusively via AWS Systems Manager Session Manager.
+Tradeoff: - Lower cost - No outbound internet access from private
+subnets - Requires alternative approach for software installation
 
-Why:
-- Eliminates SSH exposure
-- Aligns with modern security best practices
+### 3. Immutable Infrastructure via AMI
 
-### 4. Layered Security Groups
+Application dependencies (Apache) are pre-installed in a custom AMI
+instead of installed at boot.
+
+Why: - Eliminates runtime dependency on internet access - Faster and
+deterministic instance boot - Aligns with production-grade
+infrastructure patterns
+
+### 4. Private Application Tier
+
+EC2 instances are not publicly accessible and are managed via AWS
+Systems Manager Session Manager.
+
+Why: - Eliminates SSH exposure - Improves security posture
+
+### 5. Layered Security Groups
+
 Traffic is strictly controlled:
 
-- ALB accepts traffic from the internet
-- EC2 accepts traffic only from ALB
-- RDS accepts traffic only from EC2
+-   ALB accepts traffic from the internet
+-   EC2 accepts traffic only from ALB
+-   RDS accepts traffic only from EC2
 
-This enforces least privilege between tiers.
+### 6. Modular Terraform Design
 
-### 5. Modular Terraform Design
-Each component is separated into reusable modules:
+Infrastructure is split into reusable modules:
 
-- vpc
-- subnets
-- alb
-- asg
-- rds
-- security-groups
-- endpoints
-- secrets
+-   vpc
+-   subnets
+-   alb
+-   asg
+-   rds
+-   security-groups
+-   endpoints
+-   secrets
 
-Why:
-- Improves maintainability
-- Mirrors real-world infrastructure repositories
-- Enables reuse across environments
+### 7. Secrets Management
 
-### 6. Secrets Management
-Database credentials are stored in AWS Secrets Manager instead of being hardcoded.
+Database credentials are stored in AWS Secrets Manager.
 
-Why:
-- Prevents credential leakage in source control
-- Aligns with production security practices
+Why: - Prevents credential exposure - Aligns with secure design
+practices
 
----
+------------------------------------------------------------------------
 
 ## Project Structure
 
-```bash
-modules/
-  vpc/
-  subnets/
-  alb/
-  asg/
-  rds/
-  security-groups/
-  endpoints/
-  secrets/
+    modules/
+      vpc/
+      subnets/
+      alb/
+      asg/
+      rds/
+      security-groups/
+      endpoints/
+      secrets/
 
-environments/
-  dev/
-  prod/
+    environments/
+      dev/
+      prod/
 
-global/
-  backend-bootstrap/
-```
----
+    global/
+      backend-bootstrap/
+
+------------------------------------------------------------------------
 
 ## Deployment Steps
 
-```bash
-1. Clone the repository:
+    git clone <repo-url>
+    cd terraform-aws-3tier-vpc-ha
 
-   git clone <repo-url>
-   cd terraform-aws-3tier-vpc-ha
+    cd global/backend-bootstrap
+    terraform init
+    terraform apply
 
-2. Initialize backend (if not already created):
+    cd ../../environments/dev
+    terraform init
+    terraform plan
+    terraform apply
 
-   cd global/backend-bootstrap
-   terraform init
-   terraform apply
+Access the application via the ALB DNS output.
 
-3. Deploy environment:
-
-   cd ../../environments/dev
-   terraform init
-   terraform plan
-   terraform apply
-
-4. Access the application:
-
-   Use the ALB DNS name output by Terraform.
-```
-
----
+------------------------------------------------------------------------
 
 ## Teardown Steps
 
-```bash
-To destroy infrastructure:
+### CLI
 
-cd environments/dev
-terraform destroy
+    cd environments/dev
+    terraform destroy
 
-Note:
-Ensure RDS is fully deleted before re-running deployments to avoid naming conflicts.
+### CI/CD Workflow
 
-```
+A controlled destroy workflow is implemented using GitHub Actions with:
 
----
+-   Manual trigger
+-   Explicit confirmation input
+-   Environment scoping
 
-## Cost Considerations
-
-- NAT Gateway is disabled by default to avoid ~$30/month cost
-- EC2 instances use t2.micro (free tier eligible where applicable)
-- RDS uses db.t3.micro with minimal storage
-- VPC Endpoints incur minimal cost compared to NAT
-
-Key tradeoff:
-- NAT-less design reduces cost but limits outbound internet access
-
----
-
-## Security Considerations
-
-- No public EC2 instances
-- No SSH access (SSM only)
-- Database is not publicly accessible
-- Security groups enforce strict tier boundaries
-- Secrets are stored in AWS Secrets Manager
-- IAM roles are used instead of static credentials
-- Remote Terraform state stored securely in S3 with DynamoDB locking
-
----
+------------------------------------------------------------------------
 
 ## CI/CD
 
-GitHub Actions pipeline performs:
+GitHub Actions pipeline includes:
 
-- terraform fmt (format validation)
-- terraform validate
-- terraform plan
+-   terraform fmt
+-   terraform validate
+-   terraform plan
+-   Controlled apply workflow
+-   Controlled destroy workflow
 
-Authentication to AWS is handled via OIDC, eliminating the need for long-lived credentials.
+Authentication is handled via OIDC (no static credentials).
 
----
+------------------------------------------------------------------------
+
+## Cost Considerations
+
+-   NAT Gateway removed (\~\$30/month savings)
+-   t2.micro EC2 instances
+-   db.t3.micro RDS
+-   VPC Endpoints used instead of NAT
+
+Tradeoff: - Reduced cost vs limited outbound connectivity
+
+------------------------------------------------------------------------
+
+## Security Considerations
+
+-   No public EC2 instances
+-   No SSH access (SSM only)
+-   Database is private
+-   Strict security group boundaries
+-   Secrets stored in AWS Secrets Manager
+-   IAM roles used instead of access keys
+-   Remote state stored in S3 with DynamoDB locking
+
+------------------------------------------------------------------------
+
+## Lessons Learned
+
+-   Terraform state locks must be handled carefully (force-unlock when
+    necessary)
+-   AWS Secrets Manager retains deleted secrets for a recovery window
+-   VPC teardown may fail due to dependency chains (ENIs, SGs, IGW)
+-   Resources created outside Terraform can cause drift
+-   AWS infrastructure deletion is not always immediate (eventual
+    consistency)
+
+------------------------------------------------------------------------
 
 ## Future Improvements
 
-- Add HTTPS with ACM and CloudFront
-- Implement blue/green deployments
-- Introduce observability (CloudWatch dashboards and alarms)
-- Add secret rotation for database credentials
-- Expand CI/CD to include controlled apply workflows
+-   Automate AMI creation using Packer
+-   Add HTTPS (ACM + ALB or CloudFront)
+-   Implement blue/green deployments
+-   Add monitoring and alerting (CloudWatch)
+-   Enable secret rotation
 
----
+------------------------------------------------------------------------
 
 ## Author
 
-Heath Smith
-AWS Certified Solutions Architect – Associate
+Heath Smith AWS Certified Solutions Architect -- Associate
