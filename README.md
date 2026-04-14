@@ -27,7 +27,7 @@ Core characteristics:
 
 ## Architecture Diagram
 
-
+[!Architecture](./assets/three-tier-vpc-architecture.png)
 ---
 
 ## Key Design Decisions (The “Why”)
