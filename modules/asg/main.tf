@@ -26,7 +26,7 @@ resource "aws_iam_instance_profile" "this" {
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.project}-${var.environment}-lt"
   image_id      = var.ami_id
-  instance_type = "t2.micro"
+  instance_type = var.instance_type
 
   vpc_security_group_ids = [var.ec2_sg_id]
 

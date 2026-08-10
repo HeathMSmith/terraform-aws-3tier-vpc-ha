@@ -58,7 +58,8 @@ module "alb" {
 module "asg" {
   source = "../../modules/asg"
 
-  ami_id = "ami-0132130a791af644b"
+  ami_id        = "ami-0132130a791af644b"
+  instance_type = "t3.micro"
 
   subnet_ids       = module.subnets.app_subnets
   ec2_sg_id        = module.security_groups.ec2_sg_id
