@@ -11,3 +11,8 @@ output "rds_endpoint" {
 output "vpc_id" {
   value = module.vpc.vpc_id
 }
+
+output "application_url" {
+  description = "HTTPS URL for the application"
+  value       = "https://${module.dns.domain_name}"
+}

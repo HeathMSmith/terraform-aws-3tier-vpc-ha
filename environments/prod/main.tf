@@ -44,15 +44,36 @@ module "endpoints" {
   environment = "prod"
 }
 
+module "acm" {
+  source = "../../modules/acm"
+
+  domain_name    = "three-tier.hmsdev.click"
+  hosted_zone_id = "Z071256718FCET4BG12S8"
+
+  project     = "3tier-vpc"
+  environment = "prod"
+}
+
 module "alb" {
   source = "../../modules/alb"
 
   public_subnet_ids = module.subnets.public_subnets
   alb_sg_id         = module.security_groups.alb_sg_id
   vpc_id            = module.vpc.vpc_id
+  certificate_arn   = module.acm.certificate_arn
 
   project     = "3tier-vpc"
   environment = "prod"
+}
+
+module "dns" {
+  source = "../../modules/dns"
+
+  domain_name    = "three-tier.hmsdev.click"
+  hosted_zone_id = "Z071256718FCET4BG12S8"
+
+  alb_dns_name = module.alb.alb_dns_name
+  alb_zone_id  = module.alb.alb_zone_id
 }
 
 module "asg" {
