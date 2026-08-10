@@ -37,6 +37,53 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
 
+      - name: Recover Production Database Secret
+        if: github.event.inputs.environment == 'prod'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SECRET_NAME="3tier-vpc-prod-db-credentials"
+          SECRET_ADDRESS="module.secrets.aws_secretsmanager_secret.db"
+
+          echo "Checking Secrets Manager for ${SECRET_NAME}..."
+
+          if ! SECRET_JSON=$(aws secretsmanager describe-secret \
+            --secret-id "$SECRET_NAME" \
+            --region "${{ vars.AWS_REGION }}" \
+            --output json 2>/dev/null); then
+            echo "Secret does not exist. Terraform will create it."
+            exit 0
+          fi
+
+          SECRET_ARN=$(echo "$SECRET_JSON" | jq -r '.ARN')
+          DELETED_DATE=$(echo "$SECRET_JSON" | jq -r '.DeletedDate // empty')
+
+          if [ -n "$DELETED_DATE" ]; then
+            echo "Secret is scheduled for deletion."
+            echo "Restoring ${SECRET_NAME}..."
+
+            aws secretsmanager restore-secret \
+              --secret-id "$SECRET_ARN" \
+              --region "${{ vars.AWS_REGION }}"
+
+            echo "Secret restored."
+          else
+            echo "Secret already exists and is active."
+          fi
+
+          if terraform state show "$SECRET_ADDRESS" >/dev/null 2>&1; then
+            echo "Secret is already managed by Terraform."
+          else
+            echo "Importing existing secret into Terraform state..."
+            terraform import \
+              -target="$SECRET_ADDRESS" \
+              "$SECRET_ADDRESS" \
+              "$SECRET_ARN"
+
+            echo "Secret imported successfully."
+          fi
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
