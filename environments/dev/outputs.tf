@@ -14,5 +14,5 @@ output "vpc_id" {
 
 output "application_url" {
   description = "HTTPS URL for the application"
-  value       = format("%s%s", "https:", "//${module.dns.domain_name}")
+  value       = "https://${module.dns.domain_name}"
 }
