@@ -114,29 +114,22 @@ practices
       dev/
       prod/
 
-    global/
-      backend-bootstrap/
 
 ------------------------------------------------------------------------
 
 ## Deployment Steps
 
-    git clone <repo-url>
-    cd terraform-aws-3tier-vpc-ha
+```
+git clone <repo-url>
+cd terraform-aws-3tier-vpc-ha
 
-    cd global/backend-bootstrap
-    terraform init
-    terraform apply
-
-    cd ../../environments/dev
-    terraform init
-    terraform plan
-    terraform apply
+cd environments/dev
+terraform init
+terraform plan
+terraform apply
+```
 
 Access the application via the ALB DNS output.
-
-------------------------------------------------------------------------
-
 ## Teardown Steps
 
 ### CLI
@@ -187,7 +180,7 @@ Tradeoff: - Reduced cost vs limited outbound connectivity
 -   Strict security group boundaries
 -   Secrets stored in AWS Secrets Manager
 -   IAM roles used instead of access keys
--   Remote state stored in S3 with DynamoDB locking
+-   Remote state stored in a centralized S3 backend with native S3 state locking
 
 ------------------------------------------------------------------------
 

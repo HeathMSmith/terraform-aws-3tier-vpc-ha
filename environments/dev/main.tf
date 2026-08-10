@@ -58,7 +58,7 @@ module "alb" {
 module "asg" {
   source = "../../modules/asg"
 
-  ami_id = "ami-07c574ed3f5c9aeba"
+  ami_id = "ami-0132130a791af644b"
 
   subnet_ids       = module.subnets.app_subnets
   ec2_sg_id        = module.security_groups.ec2_sg_id
@@ -72,7 +72,7 @@ module "rds" {
   source = "../../modules/rds"
 
   subnet_ids = module.subnets.db_subnets
-  rds_sg_id  = module.security_groups.rds_sg_id # temporary (we'll fix later)
+  rds_sg_id  = module.security_groups.rds_sg_id
 
   secret_arn        = module.secrets.secret_arn
   secret_dependency = module.secrets
