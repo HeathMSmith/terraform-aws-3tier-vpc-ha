@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
-    bucket         = "hms-terraform-state-3tier-vpc" # <-- EXACT name you created
-    key            = "dev/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-state-locks"
-    encrypt        = true
+    bucket       = "hms-terraform-state-portfolio"
+    key          = "3tier-vpc/dev/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
