@@ -40,3 +40,14 @@ variable "private_subnet_ids" {
   description = "Private app subnet IDs"
   type        = list(string)
 }
+
+variable "subnet_count" {
+  description = "Number of public and private app subnets to associate with their route tables"
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.subnet_count > 0 && floor(var.subnet_count) == var.subnet_count
+    error_message = "subnet_count must be a positive whole number."
+  }
+}

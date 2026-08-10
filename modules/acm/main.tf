@@ -15,19 +15,29 @@ resource "aws_acm_certificate" "this" {
 
 resource "aws_route53_record" "certificate_validation" {
   for_each = {
-    for dvo in aws_acm_certificate.this.domain_validation_options :
-    dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
+    for domain_name in [var.domain_name] :
+    domain_name => {
+      name = domain_name
     }
   }
 
   zone_id = var.hosted_zone_id
-  name    = each.value.name
-  type    = each.value.type
-  ttl     = 60
-  records = [each.value.record]
+  name = one([
+    for dvo in aws_acm_certificate.this.domain_validation_options :
+    dvo.resource_record_name
+    if dvo.domain_name == each.key
+  ])
+  type = one([
+    for dvo in aws_acm_certificate.this.domain_validation_options :
+    dvo.resource_record_type
+    if dvo.domain_name == each.key
+  ])
+  ttl = 60
+  records = [one([
+    for dvo in aws_acm_certificate.this.domain_validation_options :
+    dvo.resource_record_value
+    if dvo.domain_name == each.key
+  ])]
 }
 
 resource "aws_acm_certificate_validation" "this" {

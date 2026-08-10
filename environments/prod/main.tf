@@ -106,6 +106,7 @@ module "rds" {
 module "secrets" {
   source = "../../modules/secrets"
 
-  project     = "3tier-vpc"
-  environment = "prod"
+  project                 = "3tier-vpc"
+  environment             = "prod"
+  recovery_window_in_days = 30
 }
