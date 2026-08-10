@@ -20,3 +20,8 @@ variable "project" {
 variable "environment" {
   type = string
 }
+
+variable "certificate_arn" {
+  description = "ARN of the ACM certificate used by the HTTPS listener"
+  type        = string
+}
