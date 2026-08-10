@@ -19,19 +19,88 @@ on:
           - prod
         default: dev
 
-jobs:
-  plan:
-    runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'pull_request' && 'dev' || github.event.inputs.environment }}
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
 
-    permissions:
-      id-token: write
-      contents: read
-      pull-requests: write
+jobs:
+  detect-environments:
+    name: Detect Environments
+    runs-on: ubuntu-latest
+
+    outputs:
+      environments: ${{ steps.detect.outputs.environments }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Environments to Plan
+        id: detect
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENVIRONMENTS='["${{ github.event.inputs.environment }}"]'
+          else
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+
+            PLAN_DEV=false
+            PLAN_PROD=false
+
+            if echo "$CHANGED_FILES" | grep -qE '^(modules/|\.github/workflows/|\.github/actions/)'; then
+              PLAN_DEV=true
+              PLAN_PROD=true
+            fi
+
+            if echo "$CHANGED_FILES" | grep -q '^environments/dev/'; then
+              PLAN_DEV=true
+            fi
+
+            if echo "$CHANGED_FILES" | grep -q '^environments/prod/'; then
+              PLAN_PROD=true
+            fi
+
+            if [ "$PLAN_DEV" = true ] && [ "$PLAN_PROD" = true ]; then
+              ENVIRONMENTS='["dev","prod"]'
+            elif [ "$PLAN_DEV" = true ]; then
+              ENVIRONMENTS='["dev"]'
+            elif [ "$PLAN_PROD" = true ]; then
+              ENVIRONMENTS='["prod"]'
+            else
+              echo "No Terraform environment requires planning."
+              ENVIRONMENTS='[]'
+            fi
+          fi
+
+          echo "environments=$ENVIRONMENTS" >> "$GITHUB_OUTPUT"
+          echo "Environments to plan: $ENVIRONMENTS"
+
+  plan:
+    name: Terraform Plan (${{ matrix.environment }})
+    needs: detect-environments
+
+    if: needs.detect-environments.outputs.environments != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(needs.detect-environments.outputs.environments) }}
+
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
 
     defaults:
       run:
-        working-directory: environments/${{ github.event_name == 'pull_request' && 'dev' || github.event.inputs.environment }}
+        working-directory: environments/${{ matrix.environment }}
 
     steps:
       - name: Checkout
@@ -40,20 +109,21 @@ jobs:
       - name: Prepare Terraform Environment
         uses: ./.github/actions/terraform-setup
         with:
-          working-directory: environments/${{ github.event_name == 'pull_request' && 'dev' || github.event.inputs.environment }}
+          working-directory: environments/${{ matrix.environment }}
           terraform-version: "1.15.3"
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
 
       - name: Terraform Plan
         run: |
-          echo "### Terraform Plan Summary" > plan.txt
+          echo "### Terraform Plan — ${{ matrix.environment }}" > plan.txt
           terraform plan -no-color | tee -a plan.txt
 
       - name: Comment Plan on PR
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          path: environments/dev/plan.txt
+          header: terraform-plan-${{ matrix.environment }}
+          path: environments/${{ matrix.environment }}/plan.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
