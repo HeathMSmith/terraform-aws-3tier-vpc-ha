@@ -7,7 +7,6 @@ crash.log
 
 # Terraform CLI config
 .terraform/
-.terraform.lock.hcl
 
 # Sensitive variable files
 *.tfvars
