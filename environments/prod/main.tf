@@ -96,8 +96,7 @@ module "rds" {
   subnet_ids = module.subnets.db_subnets
   rds_sg_id  = module.security_groups.rds_sg_id
 
-  secret_arn        = module.secrets.secret_arn
-  secret_dependency = module.secrets
+  db_password = module.secrets.db_password
 
   project     = "3tier-vpc"
   environment = "prod"

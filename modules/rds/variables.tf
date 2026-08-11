@@ -16,11 +16,6 @@ variable "db_username" {
   default = "admin"
 }
 
-# variable "db_password" {
-#   description = "Database password"
-#   sensitive   = true
-# }
-
 variable "project" {
   type = string
 }
@@ -29,11 +24,9 @@ variable "environment" {
   type = string
 }
 
-variable "secret_arn" {
-  description = "Secrets Manager ARN"
+variable "db_password" {
+  description = "Ephemeral database master password"
   type        = string
-}
-variable "secret_dependency" {
-  description = "Ensures secret is created before reading"
-  type        = any
+  sensitive   = true
+  ephemeral   = true
 }
