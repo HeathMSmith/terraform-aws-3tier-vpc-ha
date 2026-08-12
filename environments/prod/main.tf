@@ -82,6 +82,10 @@ module "asg" {
   ami_id        = "ami-0132130a791af644b"
   instance_type = "t3.micro"
 
+  desired_capacity = 2
+  min_size         = 2
+  max_size         = 4
+
   subnet_ids       = module.subnets.app_subnets
   ec2_sg_id        = module.security_groups.ec2_sg_id
   target_group_arn = module.alb.target_group_arn
