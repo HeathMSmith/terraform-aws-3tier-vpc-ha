@@ -33,3 +33,7 @@ terraform.rc
 # IDEs
 .vscode/
 .idea/
+
+# Terraform saved plan files
+tfplan
+tfplan.*
