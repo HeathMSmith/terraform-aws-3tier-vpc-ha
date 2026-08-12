@@ -34,12 +34,12 @@ resource "aws_launch_template" "this" {
     name = aws_iam_instance_profile.this.name
   }
 
-  user_data = base64encode(<<-EOF
-        #!/bin/bash
-        systemctl start httpd
-        echo "Hello from EC2" > /var/www/html/index.html
-        EOF
-  )
+  user_data = base64encode(templatefile(
+    "${path.module}/templates/userdata.sh.tftpl",
+    {
+      environment = var.environment
+    }
+  ))
 
   tag_specifications {
     resource_type = "instance"

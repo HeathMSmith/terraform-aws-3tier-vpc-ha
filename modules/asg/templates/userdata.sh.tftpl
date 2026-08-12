@@ -1,0 +1,246 @@
+#!/bin/bash
+set -euo pipefail
+
+# Start Apache. The AMI used by this project already contains httpd.
+systemctl enable httpd
+systemctl start httpd
+
+# Retrieve instance metadata using IMDSv2.
+IMDS_TOKEN="$(curl -sS --fail --max-time 2 \
+  -X PUT \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" \
+  http://169.254.169.254/latest/api/token || true)"
+
+if [ -n "$IMDS_TOKEN" ]; then
+  INSTANCE_ID="$(curl -sS --fail --max-time 2 \
+    -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" \
+    http://169.254.169.254/latest/meta-data/instance-id || echo "Unavailable")"
+
+  AZ="$(curl -sS --fail --max-time 2 \
+    -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" \
+    http://169.254.169.254/latest/meta-data/placement/availability-zone || echo "Unavailable")"
+else
+  INSTANCE_ID="Unavailable"
+  AZ="Unavailable"
+fi
+
+HOSTNAME="$(hostname)"
+INITIALIZED_AT="$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+cat > /var/www/html/index.html <<EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS Three-Tier VPC</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .card {
+      padding: 40px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 18px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: #f59e0b;
+      color: #111827;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: #f8fafc;
+      font-size: 2.2rem;
+    }
+
+    .subtitle {
+      margin-bottom: 32px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    .architecture {
+      margin-bottom: 28px;
+      padding: 24px;
+      text-align: center;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+    }
+
+    .architecture-title {
+      margin-bottom: 18px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .flow {
+      color: #e2e8f0;
+      font-family: monospace;
+      font-size: 1rem;
+      line-height: 2;
+    }
+
+    .arrow {
+      padding: 0 8px;
+      color: #f59e0b;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .detail {
+      padding: 16px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 7px;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .value {
+      color: #f8fafc;
+      font-family: monospace;
+      word-break: break-word;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 10px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+
+    @media (max-width: 650px) {
+      .card {
+        padding: 25px;
+      }
+
+      .details {
+        grid-template-columns: 1fr;
+      }
+
+      .flow span {
+        display: block;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <section class="card">
+      <div class="badge">AWS INFRASTRUCTURE DEMO</div>
+
+      <h1>Highly Available Three-Tier VPC</h1>
+
+      <p class="subtitle">
+        This page is served by an EC2 instance in a private application subnet
+        behind an Application Load Balancer and managed by an Auto Scaling Group.
+      </p>
+
+      <div class="architecture">
+        <div class="architecture-title">Request Path</div>
+
+        <div class="flow">
+          <span>Internet</span>
+          <span class="arrow">&rarr;</span>
+          <span>Application Load Balancer</span>
+          <span class="arrow">&rarr;</span>
+          <span>Auto Scaling Group</span>
+          <span class="arrow">&rarr;</span>
+          <span>Private EC2</span>
+        </div>
+      </div>
+
+      <div class="details">
+        <div class="detail">
+          <span class="label">Environment</span>
+          <span class="value">${environment}</span>
+        </div>
+
+        <div class="detail">
+          <span class="label">Serving Instance</span>
+          <span class="value">$INSTANCE_ID</span>
+        </div>
+
+        <div class="detail">
+          <span class="label">Availability Zone</span>
+          <span class="value">$AZ</span>
+        </div>
+
+        <div class="detail">
+          <span class="label">Hostname</span>
+          <span class="value">$HOSTNAME</span>
+        </div>
+
+        <div class="detail">
+          <span class="label">Instance Initialized</span>
+          <span class="value">$INITIALIZED_AT</span>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="status-dot"></span>
+        Request successfully served from the private application tier
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+EOF
+
+systemctl restart httpd
